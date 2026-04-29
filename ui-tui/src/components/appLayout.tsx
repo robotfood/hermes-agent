@@ -68,7 +68,7 @@ const TranscriptPane = memo(function TranscriptPane({
                 <Box flexDirection="column" paddingTop={1}>
                   <Banner t={ui.theme} />
 
-                  {row.msg.info?.version && <SessionPanel info={row.msg.info} sid={ui.sid} t={ui.theme} />}
+                  {row.msg.info && <SessionPanel info={row.msg.info} sid={ui.sid} t={ui.theme} />}
                 </Box>
               ) : row.msg.kind === 'panel' && row.msg.panelData ? (
                 <Panel sections={row.msg.panelData.sections} t={ui.theme} title={row.msg.panelData.title} />
@@ -224,7 +224,12 @@ const ComposerPane = memo(function ComposerPane({
               </Box>
             ))}
 
-            <Box onMouseDown={captureInputDrag} onMouseDrag={dragFromPromptRow} onMouseUp={endInputDrag} position="relative">
+            <Box
+              onMouseDown={captureInputDrag}
+              onMouseDrag={dragFromPromptRow}
+              onMouseUp={endInputDrag}
+              position="relative"
+            >
               <Box width={promptWidth}>
                 {sh ? (
                   <Text color={ui.theme.color.shellDollar}>{promptLabel}</Text>
