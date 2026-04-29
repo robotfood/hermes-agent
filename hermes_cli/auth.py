@@ -126,7 +126,7 @@ class ProviderConfig:
     """Describes a known inference provider."""
     id: str
     name: str
-    auth_type: str  # "oauth_device_code", "oauth_external", or "api_key"
+    auth_type: str  # "oauth_device_code", "oauth_external", "api_key", "adc", etc.
     portal_base_url: str = ""
     inference_base_url: str = ""
     client_id: str = ""
@@ -165,6 +165,12 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         name="Google Gemini (OAuth)",
         auth_type="oauth_external",
         inference_base_url=DEFAULT_GEMINI_CLOUDCODE_BASE_URL,
+    ),
+    "google-vertex": ProviderConfig(
+        id="google-vertex",
+        name="Google Vertex AI",
+        auth_type="adc",
+        inference_base_url="vertexai://google",
     ),
     "lmstudio": ProviderConfig(
         id="lmstudio",
@@ -1146,6 +1152,7 @@ def resolve_provider(
     _PROVIDER_ALIASES = {
         "glm": "zai", "z-ai": "zai", "z.ai": "zai", "zhipu": "zai",
         "google": "gemini", "google-gemini": "gemini", "google-ai-studio": "gemini",
+        "vertex": "google-vertex", "vertex-ai": "google-vertex", "google-vertex": "google-vertex",
         "x-ai": "xai", "x.ai": "xai", "grok": "xai",
         "kimi": "kimi-coding", "kimi-for-coding": "kimi-coding", "moonshot": "kimi-coding",
         "kimi-cn": "kimi-coding-cn", "moonshot-cn": "kimi-coding-cn",
@@ -1210,6 +1217,15 @@ def resolve_provider(
 
     if has_usable_secret(os.getenv("OPENAI_API_KEY")) or has_usable_secret(os.getenv("OPENROUTER_API_KEY")):
         return "openrouter"
+
+    try:
+        from agent.google_vertex import resolve_google_vertex_config
+        from hermes_cli.config import load_config
+
+        if resolve_google_vertex_config(load_config()):
+            return "google-vertex"
+    except Exception as e:
+        logger.debug("Could not detect Google Vertex config: %s", e)
 
     # Auto-detect API-key providers by checking their env vars
     for pid, pconfig in PROVIDER_REGISTRY.items():
@@ -3453,6 +3469,30 @@ def get_external_process_provider_status(provider_id: str) -> Dict[str, Any]:
     }
 
 
+def get_google_vertex_auth_status() -> Dict[str, Any]:
+    try:
+        from agent.google_vertex import resolve_google_vertex_config
+        from hermes_cli.config import load_config
+
+        vertex_config = resolve_google_vertex_config(load_config())
+    except Exception as exc:
+        return {
+            "logged_in": False,
+            "provider": "google-vertex",
+            "name": "Google Vertex AI",
+            "error": str(exc),
+        }
+    return {
+        "logged_in": bool(vertex_config),
+        "configured": bool(vertex_config),
+        "provider": "google-vertex",
+        "name": "Google Vertex AI",
+        "auth_mode": "google-adc",
+        "project": vertex_config.get("project", "") if vertex_config else "",
+        "location": vertex_config.get("location", "") if vertex_config else "",
+    }
+
+
 def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
     """Generic auth status dispatcher."""
     target = provider_id or get_active_provider()
@@ -3466,6 +3506,8 @@ def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
         return get_qwen_auth_status()
     if target == "google-gemini-cli":
         return get_gemini_oauth_auth_status()
+    if target == "google-vertex":
+        return get_google_vertex_auth_status()
     if target == "copilot-acp":
         return get_external_process_provider_status(target)
     # API-key providers

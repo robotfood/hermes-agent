@@ -1204,6 +1204,14 @@ def list_authenticated_providers(
                     has_creds = True
             except Exception as exc:
                 logger.debug("Anthropic external creds check failed: %s", exc)
+        if not has_creds and overlay.auth_type == "adc" and hermes_slug == "google-vertex":
+            try:
+                from agent.google_vertex import resolve_google_vertex_config
+                from hermes_cli.config import load_config
+
+                has_creds = bool(resolve_google_vertex_config(load_config()))
+            except Exception as exc:
+                logger.debug("Google Vertex ADC config check failed: %s", exc)
         if not has_creds:
             continue
 
@@ -1218,6 +1226,8 @@ def list_authenticated_providers(
                 model_ids = _ids if _ids is not None else (curated.get(hermes_slug, []) or curated.get(pid, []))
             except Exception:
                 model_ids = curated.get(hermes_slug, []) or curated.get(pid, [])
+        elif overlay.auth_type == "adc":
+            model_ids = curated.get(hermes_slug, []) or curated.get(pid, [])
         else:
             # Use curated list — look up by Hermes slug, fall back to overlay key
             model_ids = curated.get(hermes_slug, []) or curated.get(pid, [])

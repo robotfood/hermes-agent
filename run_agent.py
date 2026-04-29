@@ -5297,6 +5297,21 @@ class AIAgent:
                     self._client_log_context(),
                 )
                 return client
+        if self.provider == "google-vertex" or str(client_kwargs.get("base_url", "")).startswith("vertexai://"):
+            from agent.gemini_vertex_adapter import GeminiVertexClient
+
+            safe_kwargs = {
+                k: v for k, v in client_kwargs.items()
+                if k in {"project", "location", "timeout"}
+            }
+            client = GeminiVertexClient(**safe_kwargs)
+            logger.info(
+                "Gemini Vertex client created (%s, shared=%s) %s",
+                reason,
+                shared,
+                self._client_log_context(),
+            )
+            return client
         # Inject TCP keepalives so the kernel detects dead provider connections
         # instead of letting them sit silently in CLOSE-WAIT (#10324).  Without
         # this, a peer that drops mid-stream leaves the socket in a state where

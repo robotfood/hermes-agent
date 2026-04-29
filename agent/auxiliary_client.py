@@ -850,13 +850,19 @@ def _maybe_wrap_anthropic(
         return client_obj
     try:
         from agent.gemini_native_adapter import GeminiNativeClient
-        if isinstance(client_obj, GeminiNativeClient):
+        if isinstance(GeminiNativeClient, type) and isinstance(client_obj, GeminiNativeClient):
+            return client_obj
+    except ImportError:
+        pass
+    try:
+        from agent.gemini_vertex_adapter import GeminiVertexClient
+        if isinstance(GeminiVertexClient, type) and isinstance(client_obj, GeminiVertexClient):
             return client_obj
     except ImportError:
         pass
     try:
         from agent.copilot_acp_client import CopilotACPClient
-        if isinstance(client_obj, CopilotACPClient):
+        if isinstance(CopilotACPClient, type) and isinstance(client_obj, CopilotACPClient):
             return client_obj
     except ImportError:
         pass
@@ -1834,13 +1840,20 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
     try:
         from agent.gemini_native_adapter import GeminiNativeClient, AsyncGeminiNativeClient
 
-        if isinstance(sync_client, GeminiNativeClient):
+        if isinstance(GeminiNativeClient, type) and isinstance(sync_client, GeminiNativeClient):
             return AsyncGeminiNativeClient(sync_client), model
     except ImportError:
         pass
     try:
+        from agent.gemini_vertex_adapter import GeminiVertexClient, AsyncGeminiVertexClient
+
+        if isinstance(GeminiVertexClient, type) and isinstance(sync_client, GeminiVertexClient):
+            return AsyncGeminiVertexClient(sync_client), model
+    except ImportError:
+        pass
+    try:
         from agent.copilot_acp_client import CopilotACPClient
-        if isinstance(sync_client, CopilotACPClient):
+        if isinstance(CopilotACPClient, type) and isinstance(sync_client, CopilotACPClient):
             return sync_client, model
     except ImportError:
         pass
@@ -2342,6 +2355,31 @@ def resolve_provider_client(
         logger.debug("resolve_provider_client: bedrock (%s, %s)", final_model, region)
         return (_to_async_client(client, final_model, is_vision=is_vision) if async_mode
                 else (client, final_model))
+
+    elif pconfig.auth_type == "adc":
+        if provider == "google-vertex":
+            from agent.gemini_vertex_adapter import GeminiVertexClient
+            from agent.google_vertex import resolve_google_vertex_config
+            from hermes_cli.config import load_config
+            from hermes_cli.models import get_default_model_for_provider
+
+            vertex_config = resolve_google_vertex_config(load_config())
+            if not vertex_config:
+                logger.debug("resolve_provider_client: google-vertex requested but no project is configured")
+                return None, None
+            final_model = _normalize_resolved_model(
+                model or get_default_model_for_provider("google-vertex"),
+                provider,
+            )
+            client = GeminiVertexClient(
+                project=vertex_config["project"],
+                location=vertex_config["location"],
+            )
+            logger.debug("resolve_provider_client: google-vertex (%s)", final_model)
+            return (_to_async_client(client, final_model, is_vision=is_vision) if async_mode
+                    else (client, final_model))
+        logger.warning("resolve_provider_client: ADC provider %s not directly supported", provider)
+        return None, None
 
     elif pconfig.auth_type in ("oauth_device_code", "oauth_external"):
         # OAuth providers — route through their specific try functions

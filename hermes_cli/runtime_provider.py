@@ -726,6 +726,36 @@ def _resolve_azure_foundry_runtime(
     }
 
 
+def _resolve_google_vertex_runtime(
+    *,
+    requested_provider: str,
+    explicit: bool = False,
+) -> Optional[Dict[str, Any]]:
+    from agent.google_vertex import resolve_google_vertex_config
+
+    vertex_config = resolve_google_vertex_config(load_config())
+    if not vertex_config:
+        if explicit:
+            raise AuthError(
+                "Google Vertex AI requires a project. Set "
+                "provider.google-vertex.options.project in config.yaml or "
+                "GOOGLE_CLOUD_PROJECT, GCP_PROJECT, or GCLOUD_PROJECT in the environment.",
+                code="google_vertex_project_required",
+            )
+        return None
+
+    return {
+        "provider": "google-vertex",
+        "api_mode": "chat_completions",
+        "base_url": "vertexai://google",
+        "api_key": "google-adc",
+        "source": "google-adc",
+        "project": vertex_config["project"],
+        "location": vertex_config["location"],
+        "requested_provider": requested_provider,
+    }
+
+
 def _resolve_explicit_runtime(
     *,
     provider: str,
@@ -1239,6 +1269,14 @@ def resolve_runtime_provider(
         if guardrail_config:
             runtime["guardrail_config"] = guardrail_config
         return runtime
+
+    if provider == "google-vertex":
+        runtime = _resolve_google_vertex_runtime(
+            requested_provider=requested_provider,
+            explicit=requested_provider not in ("", "auto"),
+        )
+        if runtime:
+            return runtime
 
     # API-key providers (z.ai/GLM, Kimi, MiniMax, MiniMax-CN)
     pconfig = PROVIDER_REGISTRY.get(provider)

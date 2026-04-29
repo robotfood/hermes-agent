@@ -37,7 +37,7 @@ class HermesOverlay:
 
     transport: str = "openai_chat"        # openai_chat | anthropic_messages | codex_responses
     is_aggregator: bool = False
-    auth_type: str = "api_key"            # api_key | oauth_device_code | oauth_external | external_process
+    auth_type: str = "api_key"            # api_key | oauth_device_code | oauth_external | external_process | adc
     extra_env_vars: Tuple[str, ...] = ()  # env vars models.dev doesn't list
     base_url_override: str = ""           # override if models.dev URL is wrong/missing
     base_url_env_var: str = ""            # env var for user-custom base URL
@@ -70,6 +70,11 @@ HERMES_OVERLAYS: Dict[str, HermesOverlay] = {
         transport="openai_chat",
         auth_type="oauth_external",
         base_url_override="cloudcode-pa://google",
+    ),
+    "google-vertex": HermesOverlay(
+        transport="openai_chat",
+        auth_type="adc",
+        base_url_override="vertexai://google",
     ),
     "lmstudio": HermesOverlay(
         transport="openai_chat",
@@ -298,6 +303,10 @@ ALIASES: Dict[str, str] = {
     "gemini-cli": "google-gemini-cli",
     "gemini-oauth": "google-gemini-cli",
 
+    # Google Vertex AI (ADC)
+    "vertex": "google-vertex",
+    "vertex-ai": "google-vertex",
+
 
     # huggingface
     "hf": "huggingface",
@@ -355,6 +364,7 @@ _LABEL_OVERRIDES: Dict[str, str] = {
     "lmstudio": "LM Studio",
     "local": "Local endpoint",
     "bedrock": "AWS Bedrock",
+    "google-vertex": "Google Vertex AI",
     "ollama-cloud": "Ollama Cloud",
 }
 

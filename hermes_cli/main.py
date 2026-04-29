@@ -1770,6 +1770,8 @@ def select_provider_and_model(args=None):
         _model_flow_openai_codex(config, current_model)
     elif selected_provider == "qwen-oauth":
         _model_flow_qwen_oauth(config, current_model)
+    elif selected_provider == "google-vertex":
+        _model_flow_google_vertex(config, current_model)
     elif selected_provider == "google-gemini-cli":
         _model_flow_google_gemini_cli(config, current_model)
     elif selected_provider == "copilot-acp":
@@ -2731,6 +2733,77 @@ def _model_flow_google_gemini_cli(_config, current_model=""):
         )
     else:
         print("No change.")
+
+
+def _model_flow_google_vertex(config, current_model=""):
+    """Google Vertex AI via Application Default Credentials."""
+    from agent.google_vertex import resolve_google_vertex_config
+    from hermes_cli.auth import _prompt_model_selection, _save_model_choice, deactivate_provider
+    from hermes_cli.config import save_config
+    from hermes_cli.models import _PROVIDER_MODELS
+
+    vertex_config = resolve_google_vertex_config(config)
+    if not vertex_config:
+        print()
+        print("Google Vertex AI requires a project.")
+        print("Set one of:")
+        print("  export GOOGLE_CLOUD_PROJECT=your-project-id")
+        print("  export GCP_PROJECT=your-project-id")
+        print("  export GCLOUD_PROJECT=your-project-id")
+        print()
+        print("Then authenticate ADC:")
+        print("  gcloud auth application-default login")
+        return
+
+    print()
+    print(f"  Using GCP project: {vertex_config['project']}")
+    print(f"  Using Vertex location: {vertex_config['location']}")
+    print("  Auth: Google Application Default Credentials")
+    print()
+
+    models = list(_PROVIDER_MODELS.get("google-vertex") or [])
+    default = current_model or (models[0] if models else "gemini-2.5-flash")
+    selected = _prompt_model_selection(models, current_model=default)
+    if not selected:
+        print("No change.")
+        return
+
+    _save_model_choice(selected)
+
+    cfg = config
+    model = cfg.get("model")
+    if not isinstance(model, dict):
+        model = {"default": model} if model else {}
+        cfg["model"] = model
+    model["default"] = selected
+    model["provider"] = "google-vertex"
+    model["base_url"] = "vertexai://google"
+    model.pop("api_key", None)
+    model.pop("api_mode", None)
+
+    # Persist the resolved project/location so future shells do not require
+    # re-exporting GOOGLE_CLOUD_PROJECT / VERTEX_LOCATION.
+    provider_section = cfg.get("provider")
+    if provider_section is None or isinstance(provider_section, dict):
+        if not isinstance(provider_section, dict):
+            provider_section = {}
+            cfg["provider"] = provider_section
+        vertex_section = provider_section.setdefault("google-vertex", {})
+    else:
+        providers_section = cfg.setdefault("providers", {})
+        if not isinstance(providers_section, dict):
+            providers_section = {}
+            cfg["providers"] = providers_section
+        vertex_section = providers_section.setdefault("google-vertex", {})
+    if isinstance(vertex_section, dict):
+        vertex_section["options"] = {
+            "project": vertex_config["project"],
+            "location": vertex_config["location"],
+        }
+
+    save_config(cfg)
+    deactivate_provider()
+    print(f"Default model set to: {selected} (via Google Vertex AI)")
 
 
 def _model_flow_custom(config):
