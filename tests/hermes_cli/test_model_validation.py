@@ -29,7 +29,7 @@ FAKE_API_MODELS = [
     "anthropic/claude-sonnet-4.5",
     "openai/gpt-5.4-pro",
     "openai/gpt-5.4",
-    "google/gemini-3-pro-preview",
+    "google/gemini-3.1-pro-preview",
 ]
 
 
@@ -202,6 +202,19 @@ class TestProviderModelIds:
     def test_zai_returns_glm_models(self):
         assert "glm-5" in provider_model_ids("zai")
 
+    def test_gemini_fallback_includes_current_models_and_hides_shutdown_preview(self):
+        with patch("agent.models_dev.list_agentic_models", return_value=[]):
+            ids = provider_model_ids("gemini")
+
+        assert "gemini-3.1-pro-preview" in ids
+        assert "gemini-3.1-pro-preview-customtools" in ids
+        assert "gemini-3-flash-preview" in ids
+        assert "gemini-3.1-flash-lite-preview" in ids
+        assert "gemini-2.5-pro" in ids
+        assert "gemini-2.5-flash" in ids
+        assert "gemini-2.5-flash-lite" in ids
+        assert "gemini-3-pro-preview" not in ids
+
     def test_stepfun_prefers_live_catalog(self):
         with patch(
             "hermes_cli.auth.resolve_api_key_provider_credentials",
@@ -233,6 +246,7 @@ class TestProviderModelIds:
         assert "claude-sonnet-4.5" in ids
         assert "claude-haiku-4.5" in ids
         assert "gemini-3.1-pro-preview" in ids
+        assert "gemini-3-pro-preview" not in ids
         assert "claude-opus-4.6" not in ids
 
     def test_copilot_acp_falls_back_to_copilot_defaults(self):
@@ -244,6 +258,7 @@ class TestProviderModelIds:
         assert "claude-sonnet-4.6" in ids
         assert "claude-sonnet-4" in ids
         assert "gemini-3.1-pro-preview" in ids
+        assert "gemini-3-pro-preview" not in ids
         assert "copilot-acp" not in ids
         assert "claude-opus-4.6" not in ids
 

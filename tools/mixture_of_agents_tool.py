@@ -25,7 +25,7 @@ Architecture:
 3. Multiple layers can be used for iterative refinement (future enhancement)
 
 Models Used (via OpenRouter):
-- Reference Models: claude-opus-4.6, gemini-3-pro-preview, gpt-5.4-pro, deepseek-v3.2
+- Reference Models: claude-opus-4.6, gemini-3.1-pro-preview, gpt-5.4-pro, deepseek-v3.2
 - Aggregator Model: claude-opus-4.6 (highest capability for synthesis)
 
 Configuration:

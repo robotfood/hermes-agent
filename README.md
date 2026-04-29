@@ -141,13 +141,20 @@ See `hermes claw migrate --help` for all options, or use the `openclaw-migration
 
 We welcome contributions! See the [Contributing Guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
 
-Quick start for contributors — clone and go with `setup-hermes.sh`:
+Quick start for contributors — clone and go with the setup script:
 
 ```bash
 git clone https://github.com/NousResearch/hermes-agent.git
 cd hermes-agent
 ./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
 ./hermes              # auto-detects the venv, no need to `source` first
+```
+
+On Windows, run the PowerShell setup script from the cloned checkout:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup-hermes.ps1
+hermes
 ```
 
 Manual path (equivalent to the above):

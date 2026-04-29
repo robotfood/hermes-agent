@@ -337,6 +337,7 @@ class TestGeminiModelsDev:
             "google": {
                 "models": {
                     "gemini-2.5-pro": {},
+                    "gemini-3-pro-preview": {},
                     "gemma-4-31b-it": {},
                     "gemma-3-27b-it": {},
                     "gemini-1.5-pro": {},
@@ -350,6 +351,7 @@ class TestGeminiModelsDev:
             result = list_provider_models("gemini")
 
         assert "gemini-2.5-pro" in result
+        assert "gemini-3-pro-preview" not in result
         assert "gemma-4-31b-it" not in result
         assert "gemma-3-27b-it" not in result
         assert "gemini-1.5-pro" not in result
